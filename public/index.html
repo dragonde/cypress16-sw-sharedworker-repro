@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>SharedWorker + EventSource repro</title>
+    <!--WEIGHT-->
+  </head>
+  <body>
+    <h1 id="title"></h1>
+    <p>Worker messages: <span id="count">0</span></p>
+    <script>
+      // Page side of the realtime channel: creates the SharedWorker, registers, holds a presence
+      // lock, answers PING with PONG and URL_REQUEST with the stream URL (after a context fetch).
+      // Every message to and from the worker is recorded in window.__log with its time.
+      document.getElementById("title").textContent = location.pathname;
+      const log = (window.__log = []);
+      const clientId = Math.random().toString(36).slice(2);
+      const lockName = `realtime-client:${clientId}`;
+      const context = fetch("/api/context").then((r) => r.json());
+      if (!window.__noSharedWorker) {
+        log.push({ ev: "new", t: Date.now() });
+        const worker = new SharedWorker("/worker.js");
+        worker.addEventListener("error", (e) => log.push({ ev: "error", t: Date.now(), msg: String(e.message) }));
+        const send = (type, value) => {
+          log.push({ ev: `out:${type}`, t: Date.now() });
+          worker.port.postMessage({ type, value });
+        };
+        let count = 0;
+        worker.port.onmessage = (e) => {
+          log.push({ ev: `in:${e.data.type}`, t: Date.now() });
+          document.getElementById("count").textContent = String(++count);
+          if (e.data.type === "PING") send("PONG");
+          if (e.data.type === "URL_REQUEST") context.then((c) => send("URL_RESPONSE", c.sseUrl));
+        };
+        worker.port.start();
+        send("REGISTER_CLIENT", { clientId, lockName });
+        if (navigator.locks) navigator.locks.request(lockName, () => new Promise(() => {}));
+      }
+    </script>
+  </body>
+</html>

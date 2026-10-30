@@ -1,0 +1,8 @@
+{
+  "name": "cypress-sharedworker-native-network-repro",
+  "private": true,
+  "description": "Minimal reproduction: a SharedWorker holding an EventSource across cy.visit() on Cypress 16's native network path vs forceHttp1.",
+  "devDependencies": {
+    "cypress": "16.2.1"
+  }
+}

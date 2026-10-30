@@ -1,0 +1,7 @@
+node_modules/
+run-*.log
+sse-server*.log
+server.out
+certs/
+cypress/screenshots/
+cypress/videos/
